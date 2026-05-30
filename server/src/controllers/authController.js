@@ -2,6 +2,19 @@ const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken');
 const jwt = require('jsonwebtoken');
 
+const getRefreshCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+});
+
+const getClearCookieOptions = () => ({
+    httpOnly: true,
+    secure: process.env.NODE_ENV !== 'development',
+    sameSite: process.env.NODE_ENV === 'development' ? 'lax' : 'none'
+});
+
 // @desc    Register a new user
 // @route   POST /api/auth/register
 // @access  Public
@@ -40,12 +53,7 @@ const registerUser = async (req, res, next) => { // Added next for error handlin
             await user.save();
 
             // Send Refresh Token in Cookie
-            res.cookie('jwt', refreshToken, {
-                httpOnly: true,
-                secure: true, // Required for SameSite: 'None'
-                sameSite: 'none', // Allow cross-site cookie
-                maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
-            });
+            res.cookie('jwt', refreshToken, getRefreshCookieOptions());
 
             res.status(201).json({
                 _id: user._id,
@@ -70,7 +78,7 @@ const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
 
-        const user = await User.findOne({ email }).select('+password');
+        const user = await User.findOne({ email }).select('+password +refreshToken');
 
         if (user && (await user.matchPassword(password))) {
             const accessToken = generateAccessToken(user._id);
@@ -85,12 +93,7 @@ const loginUser = async (req, res, next) => {
             user.refreshToken = newRefreshTokenArray;
             await user.save();
 
-            res.cookie('jwt', refreshToken, {
-                httpOnly: true,
-                secure: true,
-                sameSite: 'none',
-                maxAge: 7 * 24 * 60 * 60 * 1000
-            });
+            res.cookie('jwt', refreshToken, getRefreshCookieOptions());
 
             res.json({
                 _id: user._id,
@@ -118,18 +121,18 @@ const logoutUser = async (req, res, next) => {
         if (!cookies?.jwt) return res.sendStatus(204); // No content
 
         const refreshToken = cookies.jwt;
-        const user = await User.findOne({ refreshToken }).exec();
+        const user = await User.findOne({ refreshToken }).select('+refreshToken').exec();
 
         if (!user) {
-            res.clearCookie('jwt', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV !== 'development' });
+            res.clearCookie('jwt', getClearCookieOptions());
             return res.sendStatus(204);
         }
 
         // Delete refreshToken in db
-        user.refreshToken = user.refreshToken.filter(rt => rt !== refreshToken);
+        user.refreshToken = (user.refreshToken || []).filter(rt => rt !== refreshToken);
         await user.save();
 
-        res.clearCookie('jwt', { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV !== 'development' });
+        res.clearCookie('jwt', getClearCookieOptions());
         res.status(200).json({ message: 'Logged out successfully' });
     } catch (error) {
         next(error);
@@ -145,7 +148,7 @@ const refresh = async (req, res, next) => {
         if (!cookies?.jwt) return res.status(401).json({ message: 'Unauthorized' });
 
         const refreshToken = cookies.jwt;
-        const user = await User.findOne({ refreshToken }).exec();
+        const user = await User.findOne({ refreshToken }).select('+refreshToken').exec();
 
         if (!user) return res.status(403).json({ message: 'Forbidden' }); // Reuse detection possible here
 

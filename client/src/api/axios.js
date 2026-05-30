@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-console.log('API_URL:', import.meta.env.VITE_API_URL || 'Fallback to Localhost');
+// console.log('API_URL:', import.meta.env.VITE_API_URL || 'Fallback to Localhost');
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
@@ -11,20 +11,20 @@ api.interceptors.request.use(
     (config) => {
         try {
             const userStr = localStorage.getItem('user');
-            console.log('User from localStorage:', userStr);
+            // console.log('User from localStorage:', userStr);
 
             if (userStr) {
                 const user = JSON.parse(userStr);
-                console.log('Parsed user:', user);
+                // console.log('Parsed user:', user);
 
                 if (user && user.token) {
                     config.headers['Authorization'] = `Bearer ${user.token}`;
-                    console.log('Token attached to request');
+                    // console.log('Token attached to request');
                 } else {
                     console.warn('User object exists but no token found');
                 }
             } else {
-                console.warn('No user in localStorage');
+                // console.warn('No user in localStorage');
             }
         } catch (error) {
             console.error('Error reading user from localStorage:', error);
