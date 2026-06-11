@@ -7,15 +7,14 @@ const app = express();
 
 // Middleware
 app.use(helmet());
+
 app.use(cors({
-    origin: [
-        'https://vercel-deployment-gray-beta.vercel.app',
-        'http://localhost:5173'
-    ],
+    origin: true, // Allow Vercel, localhost, and preview URLs
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 app.use(express.json());
 app.use(cookieParser());
 
@@ -27,10 +26,10 @@ app.use((req, res, next) => {
 
 // Rate Limiting
 const { limiter, authLimiter } = require('./middleware/rateLimit');
-app.use(limiter); // Apply general limiter to all routes
+app.use(limiter);
 
 // Routes
-app.use('/api/auth', authLimiter, require('./routes/authRoutes')); // Auth routes get stricter limit
+app.use('/api/auth', authLimiter, require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 
@@ -39,7 +38,7 @@ app.get('/', (req, res) => {
     res.send('API is running...');
 });
 
-// Error Handling Middleware
+// Error Handling
 const { errorHandler } = require('./middleware/errorMiddleware');
 app.use(errorHandler);
 
