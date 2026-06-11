@@ -23,11 +23,11 @@ app.use((req, res, next) => {
 });
 
 // Rate Limiting
-const limiter = require('./middleware/rateLimit');
-app.use(limiter);
+const { limiter, authLimiter } = require('./middleware/rateLimit');
+app.use(limiter); // Apply general limiter to all routes
 
 // Routes
-app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/auth', authLimiter, require('./routes/authRoutes')); // Auth routes get stricter limit
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/tasks', require('./routes/taskRoutes'));
 

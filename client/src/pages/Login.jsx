@@ -17,11 +17,13 @@ function Login() {
     );
 
     useEffect(() => {
+        if (isSuccess || user) {
+            if (isSuccess) dispatch(reset());
+            navigate('/');
+            return;
+        }
         if (isError) {
             toast.error(message);
-        }
-        if (isSuccess || user) {
-            navigate('/');
         }
         return () => {
             if (isSuccess) dispatch(reset());
@@ -37,7 +39,10 @@ function Login() {
 
     const onSubmit = (e) => {
         e.preventDefault();
-        dispatch(login(formData));
+        dispatch(login({
+            ...formData,
+            email: formData.email.trim(),
+        }));
     };
 
     return (

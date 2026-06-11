@@ -2,6 +2,8 @@ const User = require('../models/User');
 const { generateAccessToken, generateRefreshToken } = require('../utils/generateToken');
 const jwt = require('jsonwebtoken');
 
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
 const getRefreshCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV !== 'development',
@@ -77,8 +79,11 @@ const registerUser = async (req, res, next) => { // Added next for error handlin
 const loginUser = async (req, res, next) => {
     try {
         const { email, password } = req.body;
+        const normalizedEmail = email.trim();
 
-        const user = await User.findOne({ email }).select('+password +refreshToken');
+        const user = await User.findOne({
+            email: new RegExp(`^${escapeRegex(normalizedEmail)}$`, 'i')
+        }).select('+password +refreshToken');
 
         if (user && (await user.matchPassword(password))) {
             const accessToken = generateAccessToken(user._id);
