@@ -79,6 +79,13 @@ h6 {
   }
 }
 
+@keyframes Toastify__slideInRight {
+  0% {
+    transform: translate3d(110%, 0, 0);
+    visibility: visible;
+  }
+}
+
 .fade-in {
   animation: fadeIn 0.5s ease-out forwards;
 }
